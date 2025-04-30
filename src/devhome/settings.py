@@ -10,8 +10,16 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import base64
+import tempfile
+import os
+
 from pathlib import Path
 from decouple import config
+
+from cassandra import ConsistencyLevel
+from cassandra.cluster import Cluster
+from cassandra.auth import PlainTextAuthProvider
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -24,6 +32,18 @@ SECRET_KEY = config("DJANGO_SECRET_KEY", default=None)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
+
+# Decode Secure_Connect.zip from base64 if provided
+ASTRA_BUNDLE_B64 = config("ASTRA_BUNDLE_B64", default=None)
+
+if ASTRA_BUNDLE_B64:
+    decoded_zip_path = os.path.join(tempfile.gettempdir(), "secure_connect_bundle.zip")
+    with open(decoded_zip_path, "wb") as f:
+        f.write(base64.b64decode(ASTRA_BUNDLE_B64))
+    SECURE_CONNECT_BUNDLE_PATH = decoded_zip_path
+# else:
+#     # fallback for local dev or manual mount
+#     SECURE_CONNECT_BUNDLE_PATH = config("ASTRA_BUNDLE_PATH", default="Secure_Connect.zip")
 
 ALLOWED_HOSTS = []
 
@@ -40,8 +60,14 @@ INSTALLED_APPS = [
     # My Apps
     "django_celery_beat",
     "django_celery_results",
-    "movies"
+    "movies",
+    "products"
 ]
+
+
+INSTALLED_APPS = ["django_cassandra_engine"] + INSTALLED_APPS
+
+SESSION_ENGINE = "django_cassandra_engine.sessions.backends.db"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -76,10 +102,28 @@ WSGI_APPLICATION = 'devhome.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django_cassandra_engine',
+        'NAME': config('ASTRA_KEY_SPACE', default='devhome', cast=str),
+        'OPTIONS':{
+            'connection':{
+                'auth_provider': PlainTextAuthProvider(
+                    config('ASTRA_CLIENT_ID', default='cassandra', cast=str),
+                    config('ASTRA_CLIENT_SECRET', default='cassandra', cast=str),
+                ),
+                'cloud': {
+                    'secure_connect_bundle': SECURE_CONNECT_BUNDLE_PATH
+                }
+            }
+        }
     }
 }
 

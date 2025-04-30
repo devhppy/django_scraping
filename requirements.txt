@@ -19,3 +19,4 @@ fake-useragent
 requests_html
 slugify
 webdriver-manager
+django-cassandra-engine
