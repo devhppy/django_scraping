@@ -1,0 +1,13 @@
+services:
+  redis:
+    image: redis
+    restart: always
+    ports:
+      - 6170:6379
+    volumes:
+      - /Volumes/EXTERNAL_IM/data:/data  # bind mount to external drive
+    entrypoint: redis-server --appendonly yes
+
+networks:
+  default:
+    name: redis_network
