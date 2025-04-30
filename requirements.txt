@@ -18,3 +18,4 @@ selenium
 fake-useragent
 requests_html
 slugify
+webdriver-manager
