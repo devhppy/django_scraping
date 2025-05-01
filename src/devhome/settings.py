@@ -205,6 +205,8 @@ from pathlib import Path
 from cassandra.auth import PlainTextAuthProvider
 from decouple import config
 
+from celery.schedules import crontab
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("DJANGO_SECRET_KEY")
@@ -318,18 +320,29 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP= True
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 
-from datetime import timedelta
+# from datetime import timedelta
+
+# CELERY_BEAT_SCHEDULE = {
+#     # run every 5 minutes (adjust as needed)
+#     'sync-google-sheets-every-5-minutes': {
+#         'task': 'products.tasks.process_google_sheet_data',
+#         'schedule': timedelta(minutes=2),
+#         # optional: pass args if your task signature requires them
+#         # 'args': (),
+#     },
+# }
+
 
 CELERY_BEAT_SCHEDULE = {
-    # run every 5 minutes (adjust as needed)
     'sync-google-sheets-every-5-minutes': {
         'task': 'products.tasks.process_google_sheet_data',
-        'schedule': timedelta(minutes=2),
-        # optional: pass args if your task signature requires them
-        # 'args': (),
+        'schedule': crontab(minute=0, hour=0),
+    },
+    'scrape-asins-every-15-minutes': {
+        'task': 'products.tasks.full_ingest_scrape_and_track',
+        'schedule': crontab(minute='*/10'),
     },
 }
-
 # ——— Logging ———
 
 LOGGING = {

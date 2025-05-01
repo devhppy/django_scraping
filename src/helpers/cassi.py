@@ -211,34 +211,36 @@ def get_cluster():
     logger.info("Connecting to Astra DB cluster…")
     return Cluster(cloud=cloud, auth_provider=auth, protocol_version=4)
 
-# def get_session():
-#     sess = get_cluster().connect()
-#     logger.info(f"Setting keyspace → {ASTRA_KEYSPACE}")
-#     sess.set_keyspace(ASTRA_KEYSPACE)
-#     register_connection("astra_conn", session=sess)
-#     set_default_connection("astra_conn")
-#     logger.info("Registered Astra session in cqlengine")
-#     return sess
 
 def get_session():
-    """
-    Returns a globally cached Cassandra session.
-    Registers it with cqlengine only once.
-    """
-    global _global_session
-    if _global_session is None:
-        cluster = get_cluster()
-        _global_session = cluster.connect()
-        _global_session.set_keyspace(ASTRA_KEYSPACE)
-        register_connection("astra_conn", session=_global_session)
-        set_default_connection("astra_conn")
-        logger.info("✅ Global Cassandra session established and registered.")
-    else:
-        logger.debug("🔁 Returning existing global Cassandra session.")
-    return _global_session
+    sess = get_cluster().connect()
+    logger.info(f"Setting keyspace → {ASTRA_KEYSPACE}")
+    sess.set_keyspace(ASTRA_KEYSPACE)
+    register_connection("astra_conn", session=sess)
+    set_default_connection("astra_conn")
+    logger.info("Registered Astra session in cqlengine")
+    return sess
+# _global_session = None
+# def get_session():
+#     """
+#     Returns a globally cached Cassandra session.
+#     Registers it with cqlengine only once.
+#     """
+#     global _global_session
+#     if _global_session is None:
+#         cluster = get_cluster()
+#         _global_session = cluster.connect()
+#         _global_session.set_keyspace(ASTRA_KEYSPACE)
+#         register_connection("astra_conn", session=_global_session)
+#         set_default_connection("astra_conn")
+#         logger.info("✅ Global Cassandra session established and registered.")
+#     else:
+#         logger.debug("🔁 Returning existing global Cassandra session.")
+#     return _global_session
 
 def sync_all_tables():
-    from products.models import ProductsBaseModel
+    from products.models import ProductsBaseModel, ScrapedProductDataModel
     logger.info("Syncing Cassandra tables…")
     sync_table(ProductsBaseModel)
+    sync_table(ScrapedProductDataModel)
     logger.info("Cassandra tables synced")
